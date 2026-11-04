@@ -38,8 +38,8 @@ Existing LF52406 LineageOS-derived mondrian/sm8450-common trees and vendor blobs
 
 - [x] Historical PE code, 2 device-impacting changes and commit provenance classified.
 - [x] Official AOSP17 HIDL base/recovery/constructor behavior and exact tree identified.
-- [x] Host-only isolated source integrity test created.
-- [ ] Official tagged Android17 HIDL tree and selected files verified in independent CI.
+- [x] Historical ABI source inventory [CI PASS #41792429885](https://github.com/PixelExperience-Reborn/system_libhidl/actions/runs/41792429885).
+- [x] Official Android17 r1 exact tree, constructor symbols and recovery source declarations [CI PASS #41792429940](https://github.com/PixelExperience-Reborn/system_libhidl/actions/runs/41792429940). Source-only evidence, not a vendor linker/build test.
 - [ ] Real proprietary blobs scanned for undefined/exported constructor symbols.
 - [ ] Android17 Soong/ABI linker, VINTF/CTS/VTS and mondrian boot/recovery tests.
 
