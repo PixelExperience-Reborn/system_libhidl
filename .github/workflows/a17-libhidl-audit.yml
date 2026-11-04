@@ -1,0 +1,20 @@
+name: AOSP17 historical HIDL vendor ABI audit
+
+on:
+  push:
+    branches:
+      - audit/a17-mondrian-libhidl-20261104
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  archived-hidl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify old constructor-map ABI and recovery availability changes
+        run: python3 tools/verify_a17_libhidl_legacy.py
