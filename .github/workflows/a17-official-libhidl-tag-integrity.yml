@@ -1,0 +1,62 @@
+name: AOSP17 official HIDL exact tree and constructor ABI integrity
+
+on:
+  push:
+    branches:
+      - audit/a17-mondrian-libhidl-20261104
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official-hidl-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact official r1 tree, HIDL ABI and recovery source declarations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64
+          import json
+          from urllib.request import Request, urlopen
+
+          root_url = "https://android.googlesource.com/platform/system/libhidl/+/refs/tags/android-17.0.0_r1/"
+          def fetch(path, fmt):
+              url = root_url + path + "?format=" + fmt
+              with urlopen(Request(url, headers={"User-Agent": "PixelExperience-Reborn-A17-HIDL-audit"}), timeout=60) as response:
+                  return response.read()
+          def source(path):
+              return base64.b64decode(fetch(path, "TEXT")).decode("utf-8")
+
+          raw = fetch("", "JSON").decode("utf-8")
+          assert raw.startswith(")]}'"), "not tagged Gitiles JSON"
+          tree = json.loads(raw.split("\n", 1)[1])
+          assert tree["id"] == "f57b82cf0599f5e462f5ca2808e84f45547ebb3a", tree.get("id")
+          names = {entry["name"] for entry in tree["entries"]}
+          for name in ("base", "transport", "libhidlmemory", "vintfdata", "minijail"):
+              assert name in names, name
+
+          root_bp = source("Android.bp")
+          memory_bp = source("libhidlmemory/Android.bp")
+          static = source("transport/Static.cpp")
+          binder = source("transport/HidlBinderSupport.cpp")
+          for item in ('name: "libhidlbase"', 'name: "libhidltransport"',
+                       '"libhwbinder-impl-internal"', 'recovery_available: true',
+                       'double_loadable: true', '"com.android.nfcservices"',
+                       '"com.android.tethering"'):
+              assert item in root_bp, item
+          assert 'name: "libhidlmemory"' in memory_bp
+          assert 'recovery_available: true' not in memory_bp, "official HIDL memory recovery graph changed"
+          assert "getBnConstructorMap()" in static and "getBsConstructorMap()" in static
+          assert 'gBnConstructorMap{}' not in static
+          assert 'gBsConstructorMap{}' not in static
+          assert "details::getBnConstructorMap().get" in binder
+          assert "details::gBnConstructorMap->get" not in binder
+          print("PASS: exact upstream AOSP17 HIDL Git tree and constructor-map ABI source")
+          print("NOT TESTED: vendor ELF symbols, linker ABI, VINTF/Soong, real recovery, mondrian hardware")
+          PY
